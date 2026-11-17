@@ -1,12 +1,17 @@
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Allow local network access during development
+  allowedDevOrigins: ["192.168.1.33"],
+
   experimental: {
     agentFeedback: true,
   },
+
   cacheComponents: true,
   partialPrefetching: true,
+
   turbopack: {
     rules: {
       "*.css": {

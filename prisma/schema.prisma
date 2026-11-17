@@ -1,0 +1,421 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ===============================
+// ENUMS
+// ===============================
+
+enum UserRole {
+  CANDIDATE
+  EMPLOYER
+  ADMIN
+}
+
+enum StartupStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum EmployerRole {
+  OWNER
+  ADMIN
+  RECRUITER
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  CONTRACT
+  FREELANCE
+}
+
+enum WorkMode {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
+enum ExperienceLevel {
+  INTERN
+  FRESHER
+  ENTRY_LEVEL
+  MID_LEVEL
+  SENIOR
+}
+
+enum JobStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  CLOSED
+  EXPIRED
+}
+
+enum ApplicationMethod {
+  INTERNAL
+  EXTERNAL
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  INTERVIEW
+  OFFERED
+  REJECTED
+  WITHDRAWN
+}
+
+enum JobSourceType {
+  DIRECT
+  EXTERNAL
+}
+
+enum SalaryPeriod {
+  HOUR
+  MONTH
+  YEAR
+}
+
+enum QuestionType {
+  TEXT
+  LONG_TEXT
+  YES_NO
+  URL
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+// ===============================
+// USER & CANDIDATE
+// ===============================
+
+model User {
+  id         String   @id @default(cuid())
+  authUserId String   @unique
+  name       String?
+  email      String   @unique
+  role       UserRole @default(CANDIDATE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidateProfile CandidateProfile?
+  memberships      EmployerMembership[]
+  postedJobs       Job[] @relation("JobPostedBy")
+  statusChanges    ApplicationStatusEvent[]
+}
+
+model CandidateProfile {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  headline          String?
+  bio               String?
+  phone             String?
+  location          String?
+  education         String?
+  graduationYear    Int?
+  experienceYears   Float?
+  resumeStoragePath String?
+  linkedinUrl       String?
+  portfolioUrl      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills        CandidateSkill[]
+  savedJobs     SavedJob[]
+  applications  JobApplication[]
+  externalClicks ExternalApplicationClick[]
+}
+
+model CandidateSkill {
+  id                 String @id @default(cuid())
+  candidateProfileId String
+  name               String
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateProfileId, name])
+}
+
+// ===============================
+// STARTUPS & EMPLOYERS
+// ===============================
+
+model Startup {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String?
+  website     String?
+  logoPath    String?
+  industry    String?
+  location    String?
+  foundedYear Int?
+  status      StartupStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships EmployerMembership[]
+  jobs        Job[]
+
+  @@index([status, industry])
+  @@index([location])
+}
+
+model EmployerMembership {
+  id        String           @id @default(cuid())
+  userId    String
+  startupId String
+  role      EmployerRole     @default(RECRUITER)
+  status    MembershipStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup Startup @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startupId])
+}
+
+// ===============================
+// JOBS & INTERNSHIPS
+// ===============================
+
+model Job {
+  id          String @id @default(cuid())
+  title       String
+  slug        String @unique
+  description String
+
+  startupId  String
+  postedById String
+
+  jobType         JobType
+  workMode        WorkMode
+  experienceLevel ExperienceLevel
+
+  location     String?
+  salaryMin    Decimal? @db.Decimal(12, 2)
+  salaryMax    Decimal? @db.Decimal(12, 2)
+  currency     String   @default("INR")
+  salaryPeriod SalaryPeriod?
+
+  applicationMethod ApplicationMethod
+  applicationUrl    String?
+
+  sourceType JobSourceType @default(DIRECT)
+  sourceId   String?
+  externalId String?
+
+  status    JobStatus @default(PENDING)
+  postedAt  DateTime?
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  startup  Startup @relation(fields: [startupId], references: [id])
+  postedBy User    @relation("JobPostedBy", fields: [postedById], references: [id])
+  source   JobSource? @relation(fields: [sourceId], references: [id])
+
+  skills         JobSkill[]
+  savedBy        SavedJob[]
+  applications   JobApplication[]
+  questions      JobQuestion[]
+  externalClicks ExternalApplicationClick[]
+  reports        JobReport[]
+
+  @@unique([sourceId, externalId])
+  @@index([status, jobType])
+  @@index([workMode, experienceLevel])
+  @@index([startupId])
+  @@index([postedAt])
+}
+
+model JobSkill {
+  id    String @id @default(cuid())
+  jobId String
+  name  String
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, name])
+}
+
+// ===============================
+// SAVED JOBS
+// ===============================
+
+model SavedJob {
+  id                 String   @id @default(cuid())
+  candidateProfileId String
+  jobId              String
+  createdAt          DateTime @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  job              Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateProfileId, jobId])
+}
+
+// ===============================
+// INTERNAL APPLICATIONS
+// ===============================
+
+model JobApplication {
+  id                 String @id @default(cuid())
+  candidateProfileId String
+  jobId              String
+
+  status ApplicationStatus @default(SUBMITTED)
+
+  resumeStoragePath String
+  coverLetter       String?
+
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  withdrawnAt DateTime?
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  job              Job              @relation(fields: [jobId], references: [id])
+
+  answers       ApplicationAnswer[]
+  statusHistory ApplicationStatusEvent[]
+
+  @@unique([candidateProfileId, jobId])
+  @@index([jobId, status])
+  @@index([candidateProfileId, submittedAt])
+}
+
+model JobQuestion {
+  id        String       @id @default(cuid())
+  jobId     String
+  question  String
+  type      QuestionType @default(TEXT)
+  required  Boolean      @default(false)
+  sortOrder Int          @default(0)
+
+  job     Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  answers ApplicationAnswer[]
+}
+
+model ApplicationAnswer {
+  id            String @id @default(cuid())
+  applicationId String
+  questionId    String
+  answer        String
+
+  application JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  question    JobQuestion    @relation(fields: [questionId], references: [id])
+
+  @@unique([applicationId, questionId])
+}
+
+model ApplicationStatusEvent {
+  id            String @id @default(cuid())
+  applicationId String
+  changedById   String?
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  note          String?
+
+  createdAt DateTime @default(now())
+
+  application JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  changedBy   User?           @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
+}
+
+// ===============================
+// EXTERNAL APPLICATION TRACKING
+// ===============================
+
+model ExternalApplicationClick {
+  id                 String   @id @default(cuid())
+  jobId              String
+  candidateProfileId String?
+  clickedAt          DateTime @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateProfile CandidateProfile? @relation(fields: [candidateProfileId], references: [id], onDelete: SetNull)
+
+  @@index([jobId, clickedAt])
+}
+
+// ===============================
+// EXTERNAL JOB SOURCES
+// ===============================
+
+model JobSource {
+  id          String  @id @default(cuid())
+  name        String
+  website     String?
+  attribution String?
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  jobs       Job[]
+  importRuns JobImportRun[]
+}
+
+model JobImportRun {
+  id           String   @id @default(cuid())
+  sourceId     String
+  startedAt    DateTime @default(now())
+  finishedAt   DateTime?
+  imported     Int      @default(0)
+  updated      Int      @default(0)
+  duplicates   Int      @default(0)
+  failed       Int      @default(0)
+  errorMessage String?
+
+  source JobSource @relation(fields: [sourceId], references: [id])
+}
+
+// ===============================
+// JOB REPORTS
+// ===============================
+
+model JobReport {
+  id          String       @id @default(cuid())
+  jobId       String
+  reason      String
+  description String?
+  status      ReportStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
