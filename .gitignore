@@ -1,6 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ==========================================
+# DEPENDENCIES
+# ==========================================
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +10,124 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# ==========================================
+# NEXT.JS
+# ==========================================
 /.next/
 /out/
-
-# production
 /build
 
-# misc
-.DS_Store
-*.pem
+# ==========================================
+# PRODUCTION / DEPLOYMENT
+# ==========================================
+/.vercel
+/dist
 
-# debug
+# ==========================================
+# ENVIRONMENT VARIABLES & SECRETS
+# ==========================================
+.env
+.env.*
+!.env.example
+!.env.template
+
+# ==========================================
+# DATABASE / PRISMA LOCAL FILES
+# ==========================================
+/prisma/*.db
+/prisma/*.db-journal
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# TESTING & COVERAGE
+# ==========================================
+/coverage
+/.nyc_output
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# ==========================================
+# TYPESCRIPT
+# ==========================================
+*.tsbuildinfo
+next-env.d.ts
+
+# ==========================================
+# LOGS & DEBUG
+# ==========================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+logs/
 
-# env files (can opt-in for committing if needed)
-.env*
+# ==========================================
+# EDITORS & IDE
+# ==========================================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.swn
+*~
 
-# vercel
-.vercel
+# ==========================================
+# OPERATING SYSTEM FILES
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ==========================================
+# GENERATED / TEMPORARY FILES
+# ==========================================
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.cache
+.cache/
+.temp/
+.tmp/
+*.pid
+*.seed
+
+# ==========================================
+# BUILD / TOOL CACHES
+# ==========================================
+.turbo/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.npm/
+
+# ==========================================
+# SECURITY / CERTIFICATES
+# ==========================================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ==========================================
+# PYTHON (IF USED FOR SCRIPTS)
+# ==========================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.envrc
+
+# ==========================================
+# MISCELLANEOUS
+# ==========================================
+.DS_Store?
+*.orig
+*.rej
